@@ -1,15 +1,41 @@
-const { Console } = require('console');
+const app = require('express')();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http,{
+    /*path: '/socket.io-client'*/
+  });
 
-const http = require('http').createServer();
-const io = require('socket.io')(http);
+io.set("origins", "*:*");
+io.set('transports', ['websocket']);
+
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    next();
+  });
+app.get('/',(req,res)=>{
+    res.header
+    res.end('working');
+})
+
 const PORT =  process.env.PORT || 3000;
 
+const firebase = require('firebase/app');
+firebase.initializeApp(require('./firebaseconfig').default);
 
+require('firebase/database');
+require('firebase/firestore');
 
-
+const admin = require('firebase-admin');
+var serviceAccount = require("./kartacmaoyunu-firebase-adminsdk-g40g9-8eb894efe6.json");
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://kartacmaoyunu.firebaseio.com"
+  });
 const GAME_SETTINGS = {
     themes:{
-        nature:'DOĞA TEMA'
+        nature:'DOĞA TEMA',
+        random:"RATGELE TEMA",
+        animal:"Hayvan TEMA"
     },
     themeFormat:'{gameTheme}/{id}.jpg',
     modes:{
@@ -23,8 +49,38 @@ const GAME_SETTINGS = {
     }
 };
 
+/*
+(async function(){
+    const idToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjUxMDM2YWYyZDgzOWE4NDJhZjQzY2VjZmJiZDU4YWYxYTc1OGVlYTIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20va2FydGFjbWFveXVudSIsImF1ZCI6ImthcnRhY21hb3l1bnUiLCJhdXRoX3RpbWUiOjE1OTkyMTU3ODUsInVzZXJfaWQiOiJwdmRBZlg0b3NlYjVvaWZ3WTIxMERmT3VMeGkyIiwic3ViIjoicHZkQWZYNG9zZWI1b2lmd1kyMTBEZk91THhpMiIsImlhdCI6MTU5OTIyNDIxOSwiZXhwIjoxNTk5MjI3ODE5LCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsidGVzdEB0ZXN0LmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6InBhc3N3b3JkIn19.MwdG-FPZu3UkZV_g6R8tDzqTSKvesSTPnadaCRoLcKsRfqewKwVRYRYMIfRjR8qrTbnCac1NCBIuznxHNCSaORxDpxeyskHaHG1JXde3r8IsUZS6W-uFg1fPLLWoUPx3Q_MVvTsRPR2m1yj-0veEhvrGpP3Sk6cvOTWW6MYDjUnSMVrlVZID1tK604qat15OK-eGGmtTgWwaWrC-g4tVsiqZ2yGh3nPwWgfH72uUCcyoxeZwDlcxzhkJTtAtZD3e-s9FhuEgRY_sAVaz3HpzL4MUq94H_AMVqDl-AV6XBiHXoefZylr7U6hSwuElyX8IXHxahSIDpsF3WRMrBArgkw";
+    const id = "pvdAfX4oseb5oifwY210DfOuLxi2";
 
 
+    const winnerRef = admin.firestore().collection('kullanicilar').doc(id);
+    winnerRef.get().then(doc => {
+        
+        console.log(doc.data());
+    });
+   console.log('CHECKİNG',await CheckAuth(idToken,id))
+    
+
+      
+})();
+
+return;
+*/
+
+
+async function CheckAuth(auth,userid){
+    
+    return await admin.auth().verifyIdToken(auth)
+    .then(function(decodedToken) {
+        let uid = decodedToken.uid;
+        return uid == userid;
+    }).catch(function(error) {
+        console.log(error);
+        return false;
+    });
+}
 
 
 let pending = [
@@ -47,9 +103,9 @@ let gamesTEST = {
         gameMode:'<gameMode>',
         gameTheme:'<gameTheme>',
         gameCreated:Date.now(),
-        isStart:'<boolean>',/* is true when game started */
-        isContinue:'<boolean>',/* match contionus */
-        order:"<any-user-id>",/* formula : ~~(Math.random() * 2) */
+        isStart:'<boolean>',///* is true when game started */
+        isContinue:'<boolean>',///* match contionus */
+        order:"<any-user-id>",///* formula : ~~(Math.random() * 2) */
         cards:[
             {img:'{gameTheme}/{id}.jpg',isOpen:'<boolean>'},/*< shuffle 10 times> */
         ],
@@ -67,6 +123,7 @@ let gamesTEST = {
         turnCount:'<total turn>',
         users:{
             "<userid>":{
+                auth:'<client-auth>',
                 id:'<userid>',
                 socket:'<socket>',
                 fullname:'<fullname>',
@@ -77,6 +134,7 @@ let gamesTEST = {
                 connected:'<true when comes in room>'
             },
             "<userid2>":{
+                auth:'<client-auth>',
                 id:'<userid>',
                 socket:'<socket>',
                 fullname:'<fullname>',
@@ -92,9 +150,16 @@ let gamesTEST = {
 }
 let games = {};
 
+let onlineUsers = {};
 
 io.on('connection', (socket) => {
 
+    
+    socket.on('init2',userid=>{
+        onlineUsers[socket.id] = userid;
+        socket.broadcast.emit('init2',Object.values(onlineUsers));
+        socket.emit('init2',Object.values(onlineUsers));
+    })
     
     socket.on('match-status-checking',user => {
         if(KULLANICI_OYUNDAMI(user.id)){
@@ -107,6 +172,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('matching',(user) => {
+      
         if(OYUN_MOD_KONTROL(user.gameMode) && OYUN_TEMA_KONTROL(user.gameTheme)){
             user.user.socket = socket;
             BEKLEYENLERI_DENETLE(user);
@@ -189,55 +255,58 @@ io.on('connection', (socket) => {
                                     .emit('game card result',
                                     {state:false,ids:games[gameID].openCards.map(card => card.id)});
                                     
-                                    if(games[gameID].TIMER.interval){
-                                        clearInterval(games[gameID].TIMER.interval);
-                                        games[gameID].TIMER.second = games[gameID].TIMER.maxsecond;
-                                    }
+                        if(games[gameID].TIMER.interval){
+                            clearInterval(games[gameID].TIMER.interval);
+                            games[gameID].TIMER.second = games[gameID].TIMER.maxsecond;
+                        }
 
-                                    games[gameID].TIMER.interval = setInterval(function(){
+                        games[gameID].TIMER.interval = setInterval(function(){
 
-                                        if( !games[gameID].isContinue){
-                                            clearInterval(games[gameID].TIMER.interval);
-                                        }
-                                    
-                                      
-                                        io.sockets.in(gameID)
-                                        .emit('game timer',{second:games[gameID].TIMER.second});
-                                    
-                                        games[gameID].TIMER.second  = games[gameID].TIMER.second - 1;
-                                        
-                                        if(games[gameID].TIMER.second == 0){
-
-                                            if(games[gameID].users[user.id].requestCount == 1){
-                                                clearInterval(games[gameID].TIMER.interval);
-                                                games[gameID].users[user.id].requestCount = 0;
-                                                io.sockets.in(gameID)
-                                                .emit('game card result',{state:false,ids:[games[gameID].openCards[0].id]});
-                                                games[gameID].openCards = [];
-                                                
-                                            }
-                                        
-                                            games[gameID].order = Object.keys(games[gameID].users).find(guid=> guid != user.id);
-                                            games[gameID].TIMER.second = games[gameID].TIMER.maxsecond;
-                                            io.sockets.in(gameID).emit('game card turnchange',{order:games[gameID].order});
-                                            
-                                        }
+                            if(games[gameID] == undefined){
+                                return;
+                            }else if(!games[gameID].isContinue){
+                                clearInterval(games[gameID].TIMER.interval);
+                                return;
+                            }
+                        
+                          
+                            io.sockets.in(gameID)
+                            .emit('game timer',{second:games[gameID].TIMER.second});
+                        
+                            games[gameID].TIMER.second  = games[gameID].TIMER.second - 1;
+                            
+                            if(games[gameID].TIMER.second == 0){
     
-
-                                        
-                                    },1000);
+                                if(games[gameID].users[games[gameID].order].requestCount == 1){
+                                    
+                                    games[gameID].users[games[gameID].order].requestCount = 0;
+                                    io.sockets.in(gameID)
+                                    .emit('game card result',{state:false,ids:[games[gameID].openCards[0].id]});
+                                    
+                                    
+                                }
+                            
+                                games[gameID].order = Object.keys(games[gameID].users).find(guid=> guid != games[gameID].order);
+                                games[gameID].TIMER.second = games[gameID].TIMER.maxsecond;
+                                io.sockets.in(gameID).emit('game card turnchange',{order:games[gameID].order});
+                                
+                            }
+    
+    
+                            
+                        },1000);               
 
 
                     }/**#END else img equals */
 
-                   
+                    
+                    games[gameID].openCards = [];
 
-
-                        games[gameID].users[user.id].requestCount = 0;
-                        
-                        games[gameID].order = Object.keys(games[gameID].users).find(guid=> guid != user.id);
-                        
-                        io.sockets.in(gameID).emit('game card turnchange',{order:games[gameID].order});
+                    games[gameID].users[user.id].requestCount = 0;
+                    
+                    games[gameID].order = Object.keys(games[gameID].users).find(guid=> guid != user.id);
+                    
+                    io.sockets.in(gameID).emit('game card turnchange',{order:games[gameID].order});
                     
                     
 
@@ -245,20 +314,39 @@ io.on('connection', (socket) => {
 
             
         }else{
-            io.sockets.in(game.id).emit('game card turn',{error:true});
+            io.sockets.in(gameID).emit('game card turn',{error:true});
         }
 
     });
 
+    socket.on('game message',data=>{
+        io.sockets.in(data.gameID).emit('game message',data.user);
+    });
 
+    socket.on('user leave',user => {
+        KULLANICI_AYRILDI(user.gameID);
+    });
 
  
 
 
-    socket.broadcast.emit('online',{alive:socket.client.conn.server.clientsCount})
-    socket.emit('online',{alive:socket.client.conn.server.clientsCount})
+    socket.broadcast.emit('online-alive',{alive:socket.client.conn.server.clientsCount})
+    socket.emit('online-alive',{alive:socket.client.conn.server.clientsCount})
+    socket.on('online-alive',()=>{
+        socket.emit('online-alive',{alive:socket.client.conn.server.clientsCount})
+    })
     socket.on('disconnect',()=>{
-        socket.broadcast.emit('online',{alive:socket.client.conn.server.clientsCount})
+        socket.broadcast.emit('online-alive',{alive:socket.client.conn.server.clientsCount})
+        
+        delete onlineUsers[socket.id];
+        socket.broadcast.emit('init2',Object.values(onlineUsers));
+        socket.emit('init2',Object.values(onlineUsers));
+
+        const gameid = SOCKET_ID_OYUN_GETIR(socket.id);
+        if(gameid){
+            KULLANICI_AYRILDI(gameid);
+        }
+
     });
 
 
@@ -266,11 +354,18 @@ io.on('connection', (socket) => {
 
 });
 
+function KULLANICI_AYRILDI(gameID){
+    if(games[gameID]){
+        io.sockets.in(gameID).emit("user leave",1);     
+       delete games[gameID];
+    }
+}
+
 function BEKLEYENLERI_DENETLE(user){ 
     for(let i = 0 ;  i< pending.length;i++){
         if(pending[i].gameTheme == user.gameTheme && pending[i].gameMode == user.gameMode){
             YENI_OYUN_OLUSTUR(pending[i],user);
-            break;
+            return;
         } 
     }
     BEKLEYENLERE_KAYDET(user);
@@ -315,31 +410,32 @@ function OYUN_KULLANICI_BILGILERI(gameid){
 }
 function OYUN_KULLANICI_GETIR(gameid,userid){
     return {
+        auth:games[gameid].users[userid].auth,
         id:games[gameid].users[userid].id,
-        fullname:games[gameid].user[userid].fullname,
-        avatar:games[gameid].user[userid].avatar,
-        level:games[gameid].user[userid].level
+        fullname:games[gameid].users[userid].fullname,
+        avatar:games[gameid].users[userid].avatar,
+        level:games[gameid].users[userid].level,
+        score:games[gameid].users[userid].score
     };
 }
 function SOCKET_ID_OYUN_GETIR(socketid){
-    const find = Object.values(games).find(game => Object.keys(game.users).some(user => user.socket.id == socketid ));
+    const find = Object.values(games).find(game => Object.values(game.users).some(user => user.socket.id == socketid ));
     if(find){
         return find;
     }
     return "";
 }
-function RAKIP_KULLANICI_BILGILERI(gameid){
+function RAKIP_KULLANICI_BILGILERI(gameid,userid){
+    const oppositeid = Object.keys(games[gameid].users).filter(user => user != userid);
 
-    let users = {};
-    Object.keys(games[gameid].users).forEach(user_id => {
-        users[user_id] = {
-            id:games[gameid].users[user_id].id,
-            fullname:games[gameid].users[user_id].fullname,
-            avatar:games[gameid].users[user_id].avatar,
-            level:games[gameid].users[user_id].level
-        }
-    })
-    return users;
+    return {
+        auth:games[gameid].users[oppositeid].auth,
+        id:games[gameid].users[oppositeid].id,
+        fullname:games[gameid].users[oppositeid].fullname,
+        avatar:games[gameid].users[oppositeid].avatar,
+        level:games[gameid].users[oppositeid].level,
+        score:games[gameid].users[oppositeid].score
+    };
 
 }
 function OYUN_ID_GETIR(userid){
@@ -355,7 +451,8 @@ function BEKLEYENLERE_KAYDET(user){
 function YENI_OYUN_OLUSTUR(pendingUser,newUser){
     console.log('OYUN OLUSTU');
     // bekleyenlerden kulanıcıyı kaldır
-    pending = pending.filter(user => user.id != pendingUser.user.id);
+    KULLANICI_BEKLEYENDEN_KALDIR(pendingUser.user.id);
+    //pending = pending.filter(user => user.id != pendingUser.user.id);
     // yeni oda oluştur
     const TEMA_RESIMLERI = TEMA_RESIMLERI_GETIR(pendingUser.gameTheme);
     const MOD_SURESI = OYUN_MOD_SURESI(pendingUser.gameMode);
@@ -381,6 +478,7 @@ function YENI_OYUN_OLUSTUR(pendingUser,newUser){
             turnCount:0,
             users:{
                 [pendingUser.user.id]:{
+                    auth:pendingUser.user.auth,
                     id:pendingUser.user.id,
                     socket:pendingUser.user.socket,
                     fullname:pendingUser.user.fullname,
@@ -391,6 +489,7 @@ function YENI_OYUN_OLUSTUR(pendingUser,newUser){
                     connected:false
                 },
                 [newUser.user.id]:{
+                    auth:newUser.user.auth,
                     id:newUser.user.id,
                     socket:newUser.user.socket,
                     fullname:newUser.user.fullname,
@@ -417,9 +516,61 @@ function OYUN_BASLAT(gameid){
     games[gameid].isStart = true;
     games[gameid].isContinue = true;
 }
-function OYUN_BITIR(gameid,userid){
+async function OYUN_BITIR(gameid,userid){
     games[gameid].isContinue = false;
-    io.sockets.in(gameid).emit('game over',{winner : OYUN_KULLANICI_GETIR(gameid,userid) });
+    
+    const winner = OYUN_KULLANICI_GETIR(gameid,userid);
+    const opposite = RAKIP_KULLANICI_BILGILERI(gameid,userid);
+    io.sockets.in(gameid).emit('game over',{winner : winner });
+
+    const winnerRef = admin.firestore().collection('kullanicilar').doc(winner.id);
+    const oppositeRef = admin.firestore().collection('kullanicilar').doc(opposite.id);
+    const puan = Math.abs(winner.score - opposite.score) * 100;
+
+    if(await CheckAuth(winner.auth,winner.id)){
+        //winner
+       
+        winnerRef.get().then(doc => {
+            winnerRef.update({
+                xp : doc.data().xp + puan
+            })
+        });
+
+        admin.firestore().collection("maclar").add({
+            kullaniciRef:winnerRef,
+            durum:1,
+            macsonuc:winner.score +" / "+opposite.score,
+            rakipRef:oppositeRef,
+            tarih:Date.now()
+        });
+
+    }
+
+
+    if(await CheckAuth(opposite.auth,opposite.id)){
+        
+        oppositeRef.get().then(doc => {
+            oppositeRef.update({
+                xp : doc.data().xp + Math.floor(puan * 0.4)
+            })
+    
+        });
+    
+        admin.firestore().collection("maclar").add({
+            kullaniciRef:oppositeRef,
+            durum:-1,
+            macsonuc:opposite.score +" / "+winner.score,
+            rakipRef:winnerRef,
+            tarih:Date.now()
+        });
+
+
+    }
+
+
+
+
+   
 }
 
 
@@ -465,8 +616,9 @@ function ANY_USER_ID(u1,u2){
     return u2;
 }
 
-function SHUFFLE(array) {
-    var currentIndex = array.length, temporaryValue, randomIndex;
+function SHUFFLE(items) {
+    let array = items.map(item => item);
+    let currentIndex = array.length, temporaryValue, randomIndex;
     while (0 !== currentIndex) {
       randomIndex = Math.floor(Math.random() * currentIndex);
       currentIndex -= 1;

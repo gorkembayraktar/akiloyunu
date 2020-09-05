@@ -1,8 +1,8 @@
 .DS_Store
 node_modules
 /dist
-
-
+kartacmaoyunu-firebase-adminsdk-g40g9-8eb894efe6.json
+firebaseconfig.js
 
 # local env files
 .env.local
