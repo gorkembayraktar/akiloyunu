@@ -1,4 +1,8 @@
-VUEJS+Socketio+FIREBASE ile 2 kiþilik oyun!
+#VUEJS+Socketio+FIREBASE ile 2 kiþilik oyun!
 
-NOW VISIT
-[https://kartacmaoyunu.web.app](LIVE SERVER)
+##ÞÝMDÝ ZÝYARET ET
+[SUNUCU](https://kartacmaoyunu.web.app)
+
+
+##NOW VISIT
+[SERVER](https://kartacmaoyunu.web.app)
