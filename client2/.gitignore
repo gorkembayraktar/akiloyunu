@@ -3,6 +3,9 @@ node_modules
 /dist
 firebaseconfig.js
 
+src/assets/Thumbs.db
+.firebase/hosting.ZGlzdA.cache
+
 
 # local env files
 .env.local
