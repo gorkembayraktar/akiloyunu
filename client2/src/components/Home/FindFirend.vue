@@ -56,6 +56,8 @@
 import * as firebase from 'firebase/app';
 import "firebase/auth"
 import "firebase/firestore"
+import { mapGetters } from 'vuex'
+
 
 export default {
     data(){
@@ -67,8 +69,20 @@ export default {
             isFind:false
         }
     },
+    computed:{
+      ...mapGetters([
+          'UserFriends',
+          'UserFriendsPending',
+          'UserFriendsSending',
+          'UserFriendsActions'
+      ]),
+  },
     methods:{
       async bul(){
+
+
+        console.log(this.UserFriendsPending);
+
           if(this.checking) return;
           this.checking = true;
           
@@ -80,7 +94,7 @@ export default {
               
               this.isFind =querySnapShot.empty;
               
-
+             
               querySnapShot.forEach(doc => {
                 
                 let {adsoyad,avatar,kullaniciid,level} = doc.data();
@@ -96,7 +110,15 @@ export default {
                   status = 1;
                 }else{
                   // davet gönderildiysse 0 değilse -1
-                  status = this.$store.getters.UserFriendsPending.some(user => user.id == kullaniciid) ? 0 : -1;
+
+                  if(this.$store.getters.UserFriendsPending.some(user => user.id == kullaniciid)){
+                    status = 0;
+                  }else if(this.$store.getters.UserFriendsSending.some(user => user.id == kullaniciid)){
+                    status = 0;
+                  }else{
+                    status = -1;
+                  }
+
                 }
                 this.users.push({avatar:avatar,fullname:adsoyad,id:kullaniciid,level:level,myfriend:status});
               })
