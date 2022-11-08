@@ -40,9 +40,9 @@
     watch:{
        matchDialogLoader(prop){
          if(prop){
-           //this.warningAudio.play();
+           this.warningAudio.play();
          }else{
-           //this.warningAudio.pause();
+           this.warningAudio.pause();
          }
        }
     },
