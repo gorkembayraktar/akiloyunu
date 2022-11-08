@@ -18,8 +18,9 @@ import io from 'socket.io-client';
 import VueSocketIO from 'vue-socket.io';
 
 
+
 Vue.use(new VueSocketIO({
-  connection:io('https://onlinesocket.herokuapp.com',{
+  connection:io('https://onlinesocket.herokuapp.com'/*'http://localhost:3000'*/,{
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 3000,
@@ -59,10 +60,20 @@ Vue.use(VueResource)
     ]
   },
   {
-    path: '/about',
+    path: '/hakkimizda',
     name: 'About',
 
     component: () => import('../views/About.vue')
+  },{
+    path: '/gizlilik',
+    name: 'Privacy',
+
+    component: () => import('../views/Privacy.vue')
+  },{
+    path: '/nasil-oynanır',
+    name: 'Howtoplay',
+
+    component: () => import('../views/Howtoplay.vue')
   },
   {
     path:'/game/:id',
@@ -91,9 +102,10 @@ const router = new VueRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  document.title = 'Mind'; //to.meta.title
+  document.title = 'Eşini Bul Oyunu'; //to.meta.title
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const isAuthenticated = await firebase.auth().currentUser;
+  console.log(to);
   if(requiresAuth && !isAuthenticated){
     next('/login');
   }else{
@@ -101,6 +113,8 @@ router.beforeEach(async (to, from, next) => {
     const login = to.matched.some(recor => recor.path == '/login' || recor.path == '/register');
     if(login && isAuthenticated){
       next('/');
+    }else if(to.matched.length == 0){
+      next('/login');
     }else
       next();
   }
