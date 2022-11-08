@@ -17,7 +17,7 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="blue darken-1" text @click="closeDialog">Terket</v-btn>
-          <v-btn color="blue darken-1" @click="closeDialog">Devam et</v-btn>
+          <v-btn color="blue darken-1" @click="joinServer">Devam et</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -36,6 +36,9 @@
         closeDialog(){
           this.$socket.emit('user leave',{id:this.user.id,gameID:this.user.gameID})
           this.$emit('matchDialogHasJoined',false);
+        },
+        joinServer(){
+            this.$router.push('/game/'+this.user.gameID);
         }
     }
   }
