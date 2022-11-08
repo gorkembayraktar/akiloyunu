@@ -8,8 +8,8 @@
                             style="text-decoration:none;color:currentColor;"
                         >
                         <v-row class="mx-0 my-0 px-0 py-0 align-items-center" style="align-items:center;">
-                            <v-img position="center" src="logo.png" />
-                            <span class="ml-3">Mind</span>
+                            <v-img position="center" style="width:50px" src="logo.png?v=2" />
+                            <span class="ml-3">Eşini Bul Oyunu</span>
 
                         </v-row>
                     </router-link>
@@ -152,19 +152,33 @@ export default {
         const friendsRef = firebase.firestore().collection('arkadaslar');
         const friendSnapshot = await friendsRef
         .where('gonderenkullaniciRef','==',userRef)
-        .where('kabul','==',1)
+        .where('kabul','==',0)
         .get();
+
+      
         if(!friendSnapshot.empty){
             friendSnapshot.forEach(async (doc) => {
 
                 if(doc.data().alicikullaniciRef){
                     
+                    console.log(doc);
+
                     doc.data().alicikullaniciRef.get().then(async res => {
                         const {avatar,adsoyad,xp}  = res.data();
                         
                         let levelforxp = await this.$store.dispatch('GetLevelForXp',xp);
-                        this.$store.commit('UserFriendAppend',
-                        {avatar:avatar,fullname:adsoyad,level:levelforxp,id:res.id,docid:doc.id});  
+                        /*this.$store.commit('UserFriendAppend',
+                        {avatar:avatar,fullname:adsoyad,level:levelforxp,id:res.id,docid:doc.id});*/
+                        
+                        this.$store.commit('UserFriendSendingInvitionsAppend',
+                        {avatar:avatar,
+                        fullname:adsoyad,
+                        level:levelforxp,
+                        id:res.id,
+                        docid:doc.id
+                        });
+
+
                     })
                 }
                
@@ -185,7 +199,38 @@ export default {
                 /**
                  * 
                  */
+                 
                  data.gonderenkullaniciRef.get().then(async (res) => {
+                    const x = res.data();
+                    if(!x)return;
+
+                    const adsoyad = x.adsoyad;
+                    const avatar = x.avatar.length > 0 ? x.avatar : this.$store.state.default.avatar;
+                    const kullaniciid = x.kullaniciid;
+                    const xp = x.xp; 
+                    let levelforxp = await this.$store.dispatch('GetLevelForXp',xp);
+                    if(data.kabul == 1){
+                        this.$store.commit('UserFriendAppend',{avatar:avatar,fullname:adsoyad,level:levelforxp,id:kullaniciid,docid:doc.id});
+                    }else if(data.kabul == 0){
+                        this.$store.commit('UserFriendPendingInvitionsAppend',{avatar:avatar,fullname:adsoyad,level:levelforxp,id:kullaniciid,docid:doc.id});
+                    }
+                });
+
+            });
+        }
+
+    //** GÖNDERDİKLERİM */
+         const gondericiSnapshot = await friendsRef
+        .where('gonderenkullaniciRef','==',userRef)
+        .get();
+        if(!gondericiSnapshot.empty){
+            gondericiSnapshot.forEach(async (doc) => {
+                const data = doc.data();
+                /**
+                 * 
+                 */
+                 
+                 data.alicikullaniciRef.get().then(async (res) => {
                     const x = res.data();
                     if(!x)return;
 

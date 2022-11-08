@@ -6,7 +6,7 @@
               class="text-center white--text"
               cols="12"
             >
-              {{ new Date().getFullYear() }}  <strong>Mind</strong>
+              {{ new Date().getFullYear() }}  <strong>Görkem Bayraktar tarafından hazırlanmıştır.</strong> 
             </v-col>
           </v-row>
         </v-footer>
