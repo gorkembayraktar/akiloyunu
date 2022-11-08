@@ -5,7 +5,9 @@
       <Header :drawer="drawer" @drawer="changeDrawer"/>
   
       <!--Friend Drawer-->
-       <Friend :drawer="drawer" />
+       <Friend :drawer="drawer"  
+       @matchDialogInviteIntialize="matchDialogInviteIntialize" 
+      />
 
 
        <v-main>
@@ -21,9 +23,12 @@
 
         <ModalMatch :matchDialog="matchDialog" @matchDialog="changeMatchDialog" @matchDialogLoader="changeMatchDialogLoader"/>
         <ModalMatchLoader :matchDialogLoader="matchDialogLoader" @matchDialogLoader="changeMatchDialogLoader"/>
-        <ModalMatchInvite :matchDialogInvite="matchDialogInvite" @matchDialogInvite="changematchDialogInvite" />
+        <ModalMatchInvite :matchDialogInvite="matchDialogInvite" @matchDialogInvite="changematchDialogInvite" :user="matchDialogInviteUser" />
+        <ModalMatchInviteRequest :matchDialogInviteRequest="matchDialogInviteRequest" @matchDialogInviteRequest="changematchDialogInviteRequest" :info="matchDialogInviteRequestInfo" />
         <ModalMatchHasJoined :user="user" :matchDialogHasJoined="matchDialogHasJoined" @matchDialogHasJoined="changematchDialogHasJoined"  />
         <Modal />
+
+        <Snackbar />
 
   </v-app>
 </template>
@@ -38,8 +43,10 @@ import Friend from '@/components/Friend';
 import ModalMatch from '@/components/ModalMatch';
 import ModalMatchLoader from '@/components/ModalMatchLoader';
 import ModalMatchInvite from '@/components/ModalMatchInvite';
+import ModalMatchInviteRequest from '@/components/ModalMatchInviteRequest';
 import ModalMatchHasJoined from '@/components/ModalMatchHasJoined';
 import Modal from '@/components/Modal';
+import Snackbar from '@/components/Snackbar';
 
 
 import * as firebase from 'firebase/app';
@@ -55,8 +62,10 @@ export default {
     ModalMatch,
     ModalMatchLoader,
     ModalMatchInvite,
+    ModalMatchInviteRequest,
     ModalMatchHasJoined,
-    Modal
+    Modal,
+    Snackbar
   },
   data(){
     return {
@@ -64,7 +73,19 @@ export default {
       matchDialog:false,
       matchDialogLoader:false,
       matchDialogInvite:false,
+      matchDialogInviteUser:{
+        fullname:'',
+        avatar:'',
+        level:0
+      },
+      matchDialogInviteRequestInfo:{
+        user:{fullname:'',
+        avatar:'',
+        level:0},
+        info:{mode:'',theme:''}
+      },
       matchDialogHasJoined:false,
+      matchDialogInviteRequest:false,
       interval:null,
       isLogin:false,
       user:{
@@ -93,7 +114,13 @@ export default {
         this.user.gameID = data.gameID;
         this.matchDialogHasJoined = true;
       }
+    },
+    ["match-invite"](data){
+       console.log(data)
+       this.matchDialogInviteRequestInfo = data;
+       this.matchDialogInviteRequest = true;
     }
+    
   },
   methods:{
     changeDrawer(value){
@@ -110,6 +137,13 @@ export default {
     },
     changematchDialogInvite(value){
       this.matchDialogInvite = value;
+    },
+    changematchDialogInviteRequest(value){
+      this.matchDialogInviteRequest = value;
+    },
+    matchDialogInviteIntialize(user){
+      this.matchDialogInviteUser = user;
+      this.matchDialogInvite = true;
     },
     changematchDialogHasJoined(value){
       this.matchDialogHasJoined = value;

@@ -157,10 +157,16 @@ export default {
       this.$socket.emit('matching-gameid-control',{gameid:this.gameID,id:this.userid})
   },
   sockets:{
+    ["no-active-game"](data){
+       if(data == 1)
+          this.$router.push('/');
+    },
     ["matcing-gameid-control"](control){
       /*Eğer oyuncu değilse Erişilemezdir. */
       if(control.state == false)
         this.$router.push('/');
+      else
+        this.$socket.emit("join-already-game",control);
     },
     ["game started"](data){
       this.order = data.order;
