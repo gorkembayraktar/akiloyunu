@@ -39,6 +39,33 @@
 
           </v-list-item>
 
+          <v-subheader>Davet Gönderdiklerim</v-subheader>
+
+          <v-list-item class="p-5" dense flat tile  v-for="sendingInvitaion in UserFriendsSending" :key="sendingInvitaion.id">
+
+             <v-avatar color="blue mr-1" size="40">
+              <img
+                :src="sendingInvitaion.avatar"
+                alt="John"
+              >
+            </v-avatar>
+            <v-list-item-content>
+              <v-list-item-title>
+                {{sendingInvitaion.fullname}}
+              </v-list-item-title>
+              
+            </v-list-item-content>
+            <v-list-item-action>
+              <v-row>
+                <v-btn class="" fab dark x-small color="error" @click="friendCancel(sendingInvitaion)">
+                    <v-icon dark>mdi-minus</v-icon>
+                </v-btn>
+              </v-row>
+            </v-list-item-action>
+
+          </v-list-item>
+         
+
           <v-divider class="my-5"/>
           <span class="body-2 pl-5" v-if="UserFriends.length > 0">{{UserFriends.length}} arkadaşınız var.</span>
           <span class="body-2 pl-5" v-else>Arkadaş listeniz bomboş.</span>
@@ -52,12 +79,12 @@
             </v-avatar>
             <v-list-item-content>
               <v-list-item-title>
-                {{friend.fullname}}
+                {{friend.fullname}} 
               
               </v-list-item-title>
-              
-              <span class="body-2 success--text" v-if="friend.online">Aktif</span>
-              <span class="body-2 dark--text" v-else>Pasif</span>  
+              <span class="subtitle-2 float-left">Seviye({{friend.level}})</span>
+              <span class="subtitle-2 success--text" v-if="friend.online">Online</span>
+              <span class="subtitle-2 dark--text" v-else>Offline</span>  
             </v-list-item-content>
            
             <v-list-item-action>
@@ -115,6 +142,7 @@ export default {
    created(){
       //this.friends.sort((a,b)=>b.online-a.online);
       
+      console.log(this.UserFriends);
     },
     methods:{
       friendAccept(user){
@@ -124,13 +152,24 @@ export default {
         this.$store.dispatch('UserFriendRefusesInvition',user);
       },
       action(method,user){
+          if(method == 'InviteMatch'){
+
+            this.$emit('matchDialogInviteIntialize',user);
+
+            return;
+          }
+
           this.$store.dispatch(method,user);
+      },
+      friendCancel(user){
+        this.$store.dispatch('UserFriendCancelInvition',user);
       }
     },
     computed:{
         ...mapGetters([
           'UserFriends',
           'UserFriendsPending',
+          'UserFriendsSending',
           'UserFriendsActions'
         ]),
         friendActionType(){
