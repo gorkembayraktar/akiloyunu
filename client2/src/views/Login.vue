@@ -8,7 +8,7 @@
 
                 <v-img
                     center
-                    src="logo.png"
+                    src="logo.png?v=2"
                     max-height="300"
                 >
             </v-img>
@@ -32,6 +32,7 @@
                         placeholder="şifrenizi giriniz"
                         type='password'
                         v-model="password"
+                        @keyup.enter="pressed"
                     ></v-text-field>
                 </v-col>
 

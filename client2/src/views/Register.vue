@@ -16,7 +16,7 @@
 
             </v-row>
             <v-card-text class="white--text title text-center">Kayıt ol</v-card-text>
-            
+             <span class="red--text px-5">{{errorMessage}}</span>
                 <v-col cols="12" justify-center>
                     <v-text-field
                         dark
@@ -76,7 +76,7 @@ export default {
     data(){
         return{
             email:'',
-            password:'',
+            password:'',errorMessage:'',
         }
     },
     methods:{
@@ -87,6 +87,7 @@ export default {
         
                     this.$router.push('/');
                 }catch(err){
+                      this.errorMessage = err.message;
                     console.log(err);
                 }
         }

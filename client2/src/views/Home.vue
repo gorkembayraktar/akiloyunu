@@ -11,7 +11,7 @@
                 <v-col md="4" sm="10" cols="12">
                   <div class="body">{{UserFullName}}
 
-                    <v-btn small @click="logout">
+                    <v-btn class="red--text" small @click="logout">
                       Çıkış yap
                       <v-icon>mdi-lgout</v-icon>
                     </v-btn>
@@ -120,7 +120,7 @@
 <script>
 import * as firebase from 'firebase/app';
 import "firebase/auth"
-import { mapGetters } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 
 
 export default {
@@ -144,8 +144,15 @@ export default {
     ])
   },
   methods:{
+     ...mapActions([
+      'GetDateTurkishFormat'
+    ]),
     openMatchDialog() {
+     
       this.$emit('matchDialog',true);
+    },
+    async TurkishUserJoinDate(){
+     return this.UserJoinDate;
     },
     async logout(){
         try{
