@@ -9,6 +9,10 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
+    snackbar:{
+      show:false,
+      text:''
+    },
     modalParams:{
       title:'',
       content:'',
@@ -60,7 +64,7 @@ export default new Vuex.Store({
       id:0,
       avatar:'',
       fullname:'Kullanıcı 500261',
-      joindate:'10 Aralık 2020',
+      joindate:(new Date()).toDateString(),
       email:'',
       xp:{
         level:1,
@@ -81,12 +85,16 @@ export default new Vuex.Store({
         pendingInvitaions:[
           /*{fullname:'Görkem Bayraktar',id:521521,avatar:'https://icon-library.com/images/avatar-png-icon/avatar-png-icon-16.jpg',online:true},*/
         ],
+        sendingInvitaions:[]
 
       },
       
     }
   },
   getters:{
+    Snackbar(state){
+      return state.snackbar;
+    },
     mainModalState(state){
       return state.modalParams.open;
     },
@@ -118,7 +126,8 @@ export default new Vuex.Store({
       return state.user.fullname;
     },
     UserJoinDate(state){
-      return state.user.joindate;
+      console.log(state);
+      return (state.user.joindate);
     },
     UserLevel(state){
       return state.user.xp.level;
@@ -138,6 +147,8 @@ export default new Vuex.Store({
     UserAchievementPercent(state){
       const win = state.matchData.desserts.filter(item => item.kazandin).length ;
       const lose = state.matchData.desserts.filter(item => !item.kazandin).length;
+      if(win+lose == 0) return 0;
+      
       return Math.floor( win /( win + lose)  * 100 );
     },
     UserFriends(state){
@@ -149,6 +160,9 @@ export default new Vuex.Store({
     },
     UserFriendsPending(state){
       return state.user.friends.pendingInvitaions;
+    },
+    UserFriendsSending(state){
+      return state.user.friends.sendingInvitaions;
     },
     UserFriendsActions(state){
       return state.user.friends.actions;
@@ -167,10 +181,18 @@ export default new Vuex.Store({
     UserFriendPendingInvitionsRemove(state,user){
       state.user.friends.pendingInvitaions = state.user.friends.pendingInvitaions.filter(pending => pending.id !== user.id);
     },
+    UserFriendSendingInvitionsRemove(state,user){
+      state.user.friends.sendingInvitaions = state.user.friends.sendingInvitaions.filter(pending => pending.id !== user.id);
+    },
     UserFriendPendingInvitionsAppend(state,user){
       if(state.user.friends.pendingInvitaions.some(friend => friend.id == user.id)) return;
       if(!user.avatar || user.avatar.length == 0) user.avatar =  state.default.avatar;
       state.user.friends.pendingInvitaions.push(user);
+    },
+    UserFriendSendingInvitionsAppend(state,user){
+      if(state.user.friends.sendingInvitaions.some(friend => friend.id == user.id)) return;
+      if(!user.avatar || user.avatar.length == 0) user.avatar =  state.default.avatar;
+      state.user.friends.sendingInvitaions.push(user);
     },
     UserFriendRemove(state,user){
       state.user.friends.data = state.user.friends.data.filter(data => data.id !== user.id);
@@ -240,6 +262,21 @@ export default new Vuex.Store({
 
   },
   actions:{
+    Snackbar({state},message){
+      state.snackbar.text = message;
+      state.snackbar.show = true;
+    },
+    GetDateTurkishFormat(date){
+      var monthNames = new Array("Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık");
+      //var dayNames = new Array("Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi");
+    
+     return [
+        date.getDate,
+        monthNames[date.getMonth-1],
+        date.getYear
+      ].join(' ');
+
+    },
     async UserFriendInvite({state},user){
       const userRef = await firebase.firestore().collection('kullanicilar').doc(user.id);
       const senderRef = await firebase.firestore().collection('kullanicilar').doc(state.user.id); // mine
@@ -247,16 +284,20 @@ export default new Vuex.Store({
       .where('gonderenkullaniciRef','==',senderRef)
       .where('alicikullaniciRef','==',userRef)
 
-      await col.get().then(querySnapShot =>{
+      await col.get().then(async querySnapShot =>{
  
         if(querySnapShot.empty || querySnapShot.docs.every(doc => doc.data().kabul == -1)){
 
-            firebase.firestore().collection('arkadaslar').add({
+            const data = await firebase.firestore().collection('arkadaslar').add({
               alicikullaniciRef:userRef,
               gonderenkullaniciRef:senderRef,
               kabul:0,
               kabulTarih:''
             });
+
+            user.level = 0;
+            user.docid = data.id;
+            state.user.friends.sendingInvitaions = [user,...state.user.friends.sendingInvitaions];
 
         }else{
             /**
@@ -273,6 +314,11 @@ export default new Vuex.Store({
       await userRef.update({kabul:-1});
       commit('UserFriendPendingInvitionsRemove',user);
     },
+    async UserFriendCancelInvition({commit},user){
+      const userRef = await firebase.firestore().collection('arkadaslar').doc(user.docid);
+      await userRef.update({kabul:-1});
+      commit('UserFriendSendingInvitionsRemove',user);
+    },
     async UserFriendAcceptsInvition({commit},user){
       const userRef = await firebase.firestore().collection('arkadaslar').doc(user.docid);
       await userRef.update({kabul:1});
@@ -284,7 +330,8 @@ export default new Vuex.Store({
       await userRef.update({kabul:-1});
       commit('UserFriendRemove',user);
     },
-    InviteMatch(){
+    InviteMatch(state,user){
+      console.log(state,user);
 
     },
     async GetLevelForXp({state,dispatch},xp){
