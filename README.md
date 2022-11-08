@@ -1,6 +1,6 @@
-# VUEJS+Socketio+FIREBASE ile 2 kiþilik oyun!
+# vue.js, socket.io, firebase ile 2 kiÅŸilik oyun!
 
-## ÞÝMDÝ ZÝYARET ET
+## ÅžÄ°MDÄ° ZÄ°YARET ET
 [SUNUCU](https://kartacmaoyunu.web.app)
 
 
